@@ -1078,6 +1078,79 @@ bool test_34() {
 	return state;
 }
 
+bool test_35() {
+	OS::get_singleton()->print("\n\nTest 35: find, rfind\n");
+
+	String s = "ababacabbbaabababacababacabaa";
+	String t;
+
+	bool state = true;
+
+	OS::get_singleton()->print("s = %ls\n", s.c_str());
+
+#define FIND_TEST(_method, _start, _expected) \
+	{ \
+		int _actual = s._method(t, _start); \
+		OS::get_singleton()->print( \
+			"%s: t = \"%ls\", start = %d | expected = %d, actual = %d\n", \
+			#_method, t.c_str(), _start, _expected, _actual); \
+		state &= (_actual == (_expected)); \
+	}
+
+	t = "a";
+	FIND_TEST(find, 0, 0);
+	FIND_TEST(find, 7, 10);
+	FIND_TEST(find, 10, 10);
+	FIND_TEST(find, 11, 11);
+	FIND_TEST(find, 12, 13);
+	FIND_TEST(find, 28, 28);
+	FIND_TEST(find, 29, -1);
+	FIND_TEST(rfind, -1, 28);   // XXX: Should this be -1?
+	FIND_TEST(rfind, 0, 0);
+	FIND_TEST(rfind, 1, 0);
+	FIND_TEST(rfind, 2, 2);
+	FIND_TEST(rfind, 9, 6);
+	FIND_TEST(rfind, 26, 25);
+	FIND_TEST(rfind, 28, 28);
+
+	t = "aa";
+	FIND_TEST(find, 0, 10);
+	FIND_TEST(find, 11, 27);
+	FIND_TEST(find, 28, -1);
+	FIND_TEST(rfind, 0, -1);
+	FIND_TEST(rfind, 15, 10);
+	FIND_TEST(rfind, 27, 27);
+	FIND_TEST(rfind, 28, 27);
+	FIND_TEST(rfind, 99, 27);
+
+	t = "aba";
+	FIND_TEST(find, 0, 0);
+	FIND_TEST(find, 1, 2);
+	FIND_TEST(find, 7, 11);
+	FIND_TEST(find, 25, 25);
+	FIND_TEST(find, 26, -1);
+	FIND_TEST(find, 28, -1);
+	FIND_TEST(rfind, 0, 0);
+	FIND_TEST(rfind, 2, 2);
+	FIND_TEST(rfind, 4, 2);
+	FIND_TEST(rfind, 14, 13);
+	FIND_TEST(rfind, 18, 15);
+	FIND_TEST(rfind, 26, 25);
+
+	t = "babacaba";
+	FIND_TEST(find, 0, 14);
+	FIND_TEST(find, 16, 20);
+	FIND_TEST(find, 21, -1);
+	FIND_TEST(rfind, 13, -1);
+	FIND_TEST(rfind, 19, 14);
+	FIND_TEST(rfind, 20, 20);
+	FIND_TEST(rfind, 21, 20);
+	FIND_TEST(rfind, 22, 20);
+
+#undef FIND_TEST
+	return state;
+}
+
 typedef bool (*TestFunc)(void);
 
 TestFunc test_funcs[] = {
@@ -1116,6 +1189,7 @@ TestFunc test_funcs[] = {
 	test_32,
 	test_33,
 	test_34,
+	test_35,
 	0
 
 };
