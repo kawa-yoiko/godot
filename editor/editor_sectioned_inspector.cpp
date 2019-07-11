@@ -198,8 +198,13 @@ void SectionedInspector::edit(Object *p_object) {
 		filter->set_edited(p_object);
 		inspector->edit(filter);
 
-		if (sections->get_root()->get_children()) {
-			sections->get_root()->get_children()->select(0);
+		TreeItem *first_item = sections->get_root();
+		if (first_item) {
+			while (first_item->get_children())
+				first_item = first_item->get_children();
+
+			first_item->select(0);
+			selected_category = first_item->get_metadata(0);
 		}
 	} else {
 
