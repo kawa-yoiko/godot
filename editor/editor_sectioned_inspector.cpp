@@ -224,6 +224,10 @@ void SectionedInspector::update_category_list() {
 	TreeItem *root = sections->create_item();
 	section_map[""] = root;
 
+	String filter;
+	if (search_box)
+		filter = search_box->get_text();
+
 	for (List<PropertyInfo>::Element *E = pinfo.front(); E; E = E->next()) {
 
 		PropertyInfo pi = E->get();
@@ -236,7 +240,7 @@ void SectionedInspector::update_category_list() {
 		if (pi.name.find(":") != -1 || pi.name == "script" || pi.name == "resource_name" || pi.name == "resource_path" || pi.name == "resource_local_to_scene" || pi.name.begins_with("_global_script"))
 			continue;
 
-		if (search_box && search_box->get_text() != String() && pi.name.findn(search_box->get_text()) == -1)
+		if (!filter.empty() && pi.name.capitalize().is_subsequence_ofi(filter))
 			continue;
 
 		int sp = pi.name.find("/");
