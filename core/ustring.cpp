@@ -2408,6 +2408,10 @@ int String::find(const String &p_str, int p_from) const {
 	return -1;
 }
 
+template <typename S, typename T, bool ignores_case, bool reversed>
+static inline int _find(int slen, const S *s, int tlen, const T *t, int start) {
+}
+
 int String::find(const char *p_str, int p_from) const {
 
 	if (p_from < 0)
