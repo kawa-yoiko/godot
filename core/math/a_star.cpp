@@ -137,29 +137,42 @@ void AStar::connect_points(int p_id, int p_with_id, bool bidirectional) {
 		b->unlinked_neighbours.insert(a);
 
 	Segment s(p_id, p_with_id);
-	if (s.from == p_id) {
-		s.from_point = a;
-		s.to_point = b;
-	} else {
-		s.from_point = b;
-		s.to_point = a;
-	}
-
+	s.from_point = a;
+	s.to_point = b;
 	segments.insert(s);
+
+	if (bidirectional) {
+		SWAP(s.from, s.to);
+		SWAP(s.from_point, s.to_point);
+		segments.insert(s);
+	}
 }
-void AStar::disconnect_points(int p_id, int p_with_id) {
+void AStar::disconnect_points(int p_id, int p_with_id, bool bidirectional) {
 
 	Segment s(p_id, p_with_id);
-	ERR_FAIL_COND(!segments.has(s));
-
-	segments.erase(s);
+	Segment t(p_with_id, p_id);
 
 	Point *a = points[p_id];
 	Point *b = points[p_with_id];
-	a->neighbours.erase(b);
-	a->unlinked_neighbours.erase(b);
-	b->neighbours.erase(a);
-	b->unlinked_neighbours.erase(a);
+
+	bool warned = false;
+
+	if (segments.has(s)) {
+		segments.erase(s);
+		a->neighbours.erase(b);
+		b->unlinked_neighbours.erase(a);
+	} else {
+		warned = true;
+		WARN_PRINT("The edge to be removed does not exist.");
+	}
+
+	if (bidirectional && segments.has(t)) {
+		segments.erase(t);
+		b->neighbours.erase(a);
+		a->unlinked_neighbours.erase(b);
+	} else if (bidirectional && !warned) {
+		WARN_PRINT("The reverse edge to be removed does not exist.");
+	}
 }
 
 bool AStar::has_point(int p_id) const {
@@ -193,10 +206,11 @@ PoolVector<int> AStar::get_point_connections(int p_id) {
 	return point_list;
 }
 
-bool AStar::are_points_connected(int p_id, int p_with_id) const {
+bool AStar::are_points_connected(int p_id, int p_with_id, bool bidirectional) const {
 
 	Segment s(p_id, p_with_id);
-	return segments.has(s);
+	Segment t(p_with_id, p_id);
+	return segments.has(s) || (bidirectional && segments.has(t));
 }
 
 void AStar::clear() {
@@ -471,8 +485,8 @@ void AStar::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("is_point_disabled", "id"), &AStar::is_point_disabled);
 
 	ClassDB::bind_method(D_METHOD("connect_points", "id", "to_id", "bidirectional"), &AStar::connect_points, DEFVAL(true));
-	ClassDB::bind_method(D_METHOD("disconnect_points", "id", "to_id"), &AStar::disconnect_points);
-	ClassDB::bind_method(D_METHOD("are_points_connected", "id", "to_id"), &AStar::are_points_connected);
+	ClassDB::bind_method(D_METHOD("disconnect_points", "id", "to_id", "bidirectional"), &AStar::disconnect_points, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD("are_points_connected", "id", "to_id", "bidirectional"), &AStar::are_points_connected, DEFVAL(true));
 
 	ClassDB::bind_method(D_METHOD("clear"), &AStar::clear);
 

@@ -92,10 +92,6 @@ class AStar : public Reference {
 		bool operator<(const Segment &p_s) const { return key < p_s.key; }
 		Segment() { key = 0; }
 		Segment(int p_from, int p_to) {
-			if (p_from > p_to) {
-				SWAP(p_from, p_to);
-			}
-
 			from = p_from;
 			to = p_to;
 		}
@@ -128,8 +124,8 @@ public:
 	bool is_point_disabled(int p_id) const;
 
 	void connect_points(int p_id, int p_with_id, bool bidirectional = true);
-	void disconnect_points(int p_id, int p_with_id);
-	bool are_points_connected(int p_id, int p_with_id) const;
+	void disconnect_points(int p_id, int p_with_id, bool bidirectional = true);
+	bool are_points_connected(int p_id, int p_with_id, bool bidirectional = true) const;
 
 	void clear();
 
