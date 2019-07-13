@@ -166,15 +166,34 @@ void EQ::set_preset_band_mode(Preset p_preset) {
 	recalculate_band_coefficients();
 }
 
+void EQ::set_band_count(int p_size) {
+
+	band.resize(p_size);
+
+	for (int i = 1; i < band.size(); i++)
+		if (band[i].freq == 0)
+			band.write[i].freq = band[i - 1].freq;
+	recalculate_band_coefficients();
+}
+
 int EQ::get_band_count() const {
 
 	return band.size();
 }
-float EQ::get_band_frequency(int p_band) {
+
+float EQ::get_band_frequency(int p_band) const {
 
 	ERR_FAIL_INDEX_V(p_band, band.size(), 0);
 	return band[p_band].freq;
 }
+
+void EQ::set_band_frequency(int p_band, float p_freq) {
+
+	ERR_FAIL_INDEX(p_band, band.size());
+	band.write[p_band].freq = p_freq;
+	recalculate_band_coefficients();
+}
+
 void EQ::set_bands(const Vector<float> &p_bands) {
 
 	band.resize(p_bands.size());

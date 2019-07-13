@@ -154,6 +154,7 @@ void register_server_types() {
 		ClassDB::register_class<AudioEffectEQ6>();
 		ClassDB::register_class<AudioEffectEQ10>();
 		ClassDB::register_class<AudioEffectEQ21>();
+		ClassDB::register_class<AudioEffectEQCustom>();
 
 		ClassDB::register_class<AudioEffectDistortion>();
 
