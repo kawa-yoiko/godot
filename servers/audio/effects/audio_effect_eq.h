@@ -40,6 +40,7 @@ class AudioEffectEQInstance : public AudioEffectInstance {
 	GDCLASS(AudioEffectEQInstance, AudioEffectInstance);
 	friend class AudioEffectEQ;
 	Ref<AudioEffectEQ> base;
+	int cur_freqs_rev;
 
 	Vector<EQ::BandProcess> bands[2];
 	Vector<float> gains;
@@ -58,6 +59,7 @@ protected:
 	Vector<float> gain;
 	Map<StringName, int> prop_band_map;
 	Vector<String> band_names;
+	int freqs_rev;
 
 	bool _set(const StringName &p_name, const Variant &p_value);
 	bool _get(const StringName &p_name, Variant &r_ret) const;

@@ -33,6 +33,16 @@
 
 void AudioEffectEQInstance::process(const AudioFrame *p_src_frames, AudioFrame *p_dst_frames, int p_frame_count) {
 
+	if (base->freqs_rev != cur_freqs_rev) {
+		cur_freqs_rev = base->freqs_rev;
+		for (int i = 0; i < 2; i++) {
+			bands[i].resize(base->eq.get_band_count());
+			for (int j = 0; j < bands[i].size(); j++) {
+				bands[i].write[j] = base->eq.get_band_processor(j, bands[i][j]);
+			}
+		}
+	}
+
 	int band_count = bands[0].size();
 	EQ::BandProcess *proc_l = bands[0].ptrw();
 	EQ::BandProcess *proc_r = bands[1].ptrw();
@@ -69,9 +79,8 @@ Ref<AudioEffectInstance> AudioEffectEQ::instance() {
 	ins->gains.resize(eq.get_band_count());
 	for (int i = 0; i < 2; i++) {
 		ins->bands[i].resize(eq.get_band_count());
-		for (int j = 0; j < ins->bands[i].size(); j++) {
-			ins->bands[i].write[j] = eq.get_band_processor(j);
-		}
+		ins->cur_freqs_rev = freqs_rev;
+		freqs_rev++; // An update will be triggered on the first frame
 	}
 
 	return ins;
@@ -137,6 +146,7 @@ void AudioEffectEQ::_bind_methods() {
 
 AudioEffectEQ::AudioEffectEQ() {
 
+	freqs_rev = 0;
 	eq.set_mix_rate(AudioServer::get_singleton()->get_mix_rate());
 }
 
@@ -179,6 +189,7 @@ void AudioEffectEQCustom::set_band_frequency(int p_band, float p_freq) {
 	p_freq = (p_freq < 10 ? 10 : (p_freq > 22050 ? 22050 : p_freq));
 	freqs.write[p_band] = p_freq;
 	eq.set_bands(freqs);
+	freqs_rev++;
 }
 
 bool AudioEffectEQCustom::_set(const StringName &p_name, const Variant &p_value) {

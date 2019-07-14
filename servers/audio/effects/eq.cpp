@@ -192,7 +192,7 @@ void EQ::set_mix_rate(float p_mix_rate) {
 	recalculate_band_coefficients();
 }
 
-EQ::BandProcess EQ::get_band_processor(int p_band) const {
+EQ::BandProcess EQ::get_band_processor(int p_band, const BandProcess &p_cur) const {
 
 	EQ::BandProcess band_proc;
 
@@ -201,6 +201,7 @@ EQ::BandProcess EQ::get_band_processor(int p_band) const {
 	band_proc.c1 = band[p_band].c1;
 	band_proc.c2 = band[p_band].c2;
 	band_proc.c3 = band[p_band].c3;
+	band_proc.history = p_cur.history;
 
 	return band_proc;
 }
