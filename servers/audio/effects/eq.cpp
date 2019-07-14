@@ -106,7 +106,11 @@ void EQ::recalculate_band_coefficients() {
 		double r1, r2; //roots
 		int roots = solve_quadratic(c2a, c2b, c2c, &r1, &r2);
 
-		ERR_CONTINUE(roots == 0);
+		if (roots == 0) {
+
+			WARN_PRINT("Could not process one of the bands; probably caused by coinciding band frequencies");
+			continue;
+		}
 
 		band.write[i].c1 = 2.0 * ((0.5 - r1) / 2.0);
 		band.write[i].c2 = 2.0 * r1;

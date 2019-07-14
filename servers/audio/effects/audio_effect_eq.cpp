@@ -31,8 +31,15 @@
 #include "audio_effect_eq.h"
 #include "servers/audio_server.h"
 
+#define EQ_CUSTOM_BANDS_MAX 31
+#define EQ_CUSTOM_BANDS_HINT "2,31,1"
+#define EQ_CUSTOM_FREQ_MIN 10
+#define EQ_CUSTOM_FREQ_MAX 20000
+#define EQ_CUSTOM_FREQ_HINT "10,20000,1"
+
 void AudioEffectEQInstance::process(const AudioFrame *p_src_frames, AudioFrame *p_dst_frames, int p_frame_count) {
 
+	// Update the processor if band frequencies have changed
 	if (base->freqs_rev != cur_freqs_rev) {
 		cur_freqs_rev = base->freqs_rev;
 		for (int i = 0; i < 2; i++) {
@@ -164,12 +171,12 @@ AudioEffectEQPreset::AudioEffectEQPreset(EQ::Preset p_preset) {
 
 void AudioEffectEQCustom::set_band_count(int p_count) {
 
-	p_count = (p_count < 2 ? 2 : (p_count > 31 ? 31 : p_count));
+	ERR_FAIL_COND(p_count < 2 || p_count > EQ_CUSTOM_BANDS_MAX);
 
 	int prev_size = freqs.size();
 	freqs.resize(p_count);
 	for (int i = prev_size; i < p_count; i++)
-		freqs.write[i] = (i == 0 ? 10 : freqs[i - 1]);
+		freqs.write[i] = (i == 0 ? EQ_CUSTOM_FREQ_MIN : freqs[i - 1]);
 	eq.set_bands(freqs);
 
 	gain.resize(p_count);
@@ -185,8 +192,8 @@ void AudioEffectEQCustom::set_band_count(int p_count) {
 void AudioEffectEQCustom::set_band_frequency(int p_band, float p_freq) {
 
 	ERR_FAIL_INDEX(p_band, eq.get_band_count());
+	ERR_FAIL_COND(p_freq < EQ_CUSTOM_FREQ_MIN || p_freq > EQ_CUSTOM_FREQ_MAX);
 
-	p_freq = (p_freq < 10 ? 10 : (p_freq > 22050 ? 22050 : p_freq));
 	freqs.write[p_band] = p_freq;
 	eq.set_bands(freqs);
 	freqs_rev++;
@@ -217,7 +224,7 @@ bool AudioEffectEQCustom::_get(const StringName &p_name, Variant &r_ret) const {
 	if (AudioEffectEQ::_get(p_name, r_ret)) return true;
 
 	if (p_name == "band_count") {
-		r_ret = gain.size();
+		r_ret = get_band_count();
 		return true;
 	} else {
 		String prefix = "band_frequency/band_";
@@ -236,10 +243,12 @@ bool AudioEffectEQCustom::_get(const StringName &p_name, Variant &r_ret) const {
 
 void AudioEffectEQCustom::_get_property_list(List<PropertyInfo> *p_list) const {
 
-	p_list->push_back(PropertyInfo(Variant::INT, "band_count", PROPERTY_HINT_RANGE, "2,31,1"));
+	p_list->push_back(PropertyInfo(Variant::INT,
+			"band_count", PROPERTY_HINT_RANGE, EQ_CUSTOM_BANDS_HINT));
 
 	for (int i = 0; i < gain.size(); i++) {
-		p_list->push_back(PropertyInfo(Variant::REAL, "band_frequency/band_" + itos(i), PROPERTY_HINT_EXP_RANGE, "10,22050,1"));
+		p_list->push_back(PropertyInfo(Variant::REAL,
+				"band_frequency/band_" + itos(i), PROPERTY_HINT_EXP_RANGE, EQ_CUSTOM_FREQ_HINT));
 	}
 }
 
@@ -251,6 +260,7 @@ void AudioEffectEQCustom::_bind_methods() {
 
 AudioEffectEQCustom::AudioEffectEQCustom() {
 
-	// Set to 31 bands on initialization, because gain values will be loaded first
-	set_band_count(31);
+	// Set to maximum bands on initialization
+	// because gain values will be loaded before band count
+	set_band_count(EQ_CUSTOM_BANDS_MAX);
 }
