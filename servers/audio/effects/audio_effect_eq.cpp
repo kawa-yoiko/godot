@@ -140,11 +140,6 @@ AudioEffectEQ::AudioEffectEQ() {
 	eq.set_mix_rate(AudioServer::get_singleton()->get_mix_rate());
 }
 
-void AudioEffectEQPreset::_bind_methods() {
-
-	//ClassDB::bind_method(D_METHOD("nonsense", "count"), &AudioEffectEQPreset::set_band_count);
-}
-
 AudioEffectEQPreset::AudioEffectEQPreset(EQ::Preset p_preset) {
 
 	eq.set_preset_band_mode(p_preset);
@@ -159,12 +154,18 @@ AudioEffectEQPreset::AudioEffectEQPreset(EQ::Preset p_preset) {
 
 void AudioEffectEQCustom::set_band_count(int p_count) {
 
-	eq.set_band_count(p_count);
+	p_count = (p_count < 2 ? 2 : (p_count > 31 ? 31 : p_count));
+
+	int prev_size = freqs.size();
+	freqs.resize(p_count);
+	for (int i = prev_size; i < p_count; i++)
+		freqs.write[i] = (i == 0 ? 10 : freqs[i - 1]);
+	eq.set_bands(freqs);
+
 	gain.resize(p_count);
 	prop_band_map.clear();
 	band_names.clear();
 	for (int i = 0; i < gain.size(); i++) {
-		gain.write[i] = 0.0;
 		String name = "band_db/band_" + itos(i);
 		prop_band_map[name] = i;
 		band_names.push_back(name);
@@ -172,31 +173,28 @@ void AudioEffectEQCustom::set_band_count(int p_count) {
 }
 
 void AudioEffectEQCustom::set_band_frequency(int p_band, float p_freq) {
+
+	ERR_FAIL_INDEX(p_band, eq.get_band_count());
+
+	p_freq = (p_freq < 10 ? 10 : (p_freq > 22050 ? 22050 : p_freq));
+	freqs.write[p_band] = p_freq;
+	eq.set_bands(freqs);
 }
 
 bool AudioEffectEQCustom::_set(const StringName &p_name, const Variant &p_value) {
 
-	printf(">> %ls\n", ((String)p_name).c_str());
 	if (AudioEffectEQ::_set(p_name, p_value)) return true;
 
 	if (p_name == "band_count") {
-		int count = (int)p_value;
-		count = (count < 0 ? 0 : (count > 31 ? 31 : count));
-		set_band_count(count);
+		set_band_count((int)p_value);
 		return true;
 	} else {
 		String prefix = "band_frequency/band_";
 		String name = (String)p_name;
 		if (name.begins_with(prefix)) {
 			int idx = name.substr(prefix.length()).to_int();
-			if (idx >= 0 && idx < 31) {
-				if (idx >= eq.get_band_count())
-					set_band_count(idx + 1);
-				float freq = (float)p_value;
-				freq = (freq < 10 ? 10 : (freq > 22050 ? 22050 : freq));
-				eq.set_band_frequency(idx, freq);
-				return true;
-			}
+			set_band_frequency(idx, (float)p_value);
+			return true;
 		}
 	}
 
@@ -216,7 +214,7 @@ bool AudioEffectEQCustom::_get(const StringName &p_name, Variant &r_ret) const {
 		if (name.begins_with(prefix)) {
 			int idx = name.substr(prefix.length()).to_int();
 			if (idx >= 0 && idx < eq.get_band_count()) {
-				r_ret = eq.get_band_frequency(idx);
+				r_ret = freqs[idx];
 				return true;
 			}
 		}
@@ -227,7 +225,7 @@ bool AudioEffectEQCustom::_get(const StringName &p_name, Variant &r_ret) const {
 
 void AudioEffectEQCustom::_get_property_list(List<PropertyInfo> *p_list) const {
 
-	p_list->push_back(PropertyInfo(Variant::INT, "band_count", PROPERTY_HINT_RANGE, "0,31,1"));
+	p_list->push_back(PropertyInfo(Variant::INT, "band_count", PROPERTY_HINT_RANGE, "2,31,1"));
 
 	for (int i = 0; i < gain.size(); i++) {
 		p_list->push_back(PropertyInfo(Variant::REAL, "band_frequency/band_" + itos(i), PROPERTY_HINT_EXP_RANGE, "10,22050,1"));
@@ -241,4 +239,7 @@ void AudioEffectEQCustom::_bind_methods() {
 }
 
 AudioEffectEQCustom::AudioEffectEQCustom() {
+
+	// Set to 31 bands on initialization, because gain values will be loaded first
+	set_band_count(31);
 }

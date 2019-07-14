@@ -83,12 +83,10 @@ private:
 public:
 	void set_mix_rate(float p_mix_rate);
 
-	void set_band_count(int p_size);
 	int get_band_count() const;
 	void set_preset_band_mode(Preset p_preset);
 	void set_bands(const Vector<float> &p_bands);
 	BandProcess get_band_processor(int p_band) const;
-	void set_band_frequency(int p_band, float p_freq);
 	float get_band_frequency(int p_band) const;
 
 	EQ();

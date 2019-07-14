@@ -80,8 +80,6 @@ class AudioEffectEQPreset : public AudioEffectEQ {
 
 protected:
 	AudioEffectEQPreset(EQ::Preset p_preset = EQ::PRESET_6_BANDS);
-
-	static void _bind_methods();
 };
 
 class AudioEffectEQ6 : public AudioEffectEQPreset {
@@ -112,6 +110,8 @@ class AudioEffectEQCustom : public AudioEffectEQ {
 	GDCLASS(AudioEffectEQCustom, AudioEffectEQ);
 
 protected:
+	Vector<float> freqs;
+
 	bool _set(const StringName &p_name, const Variant &p_value);
 	bool _get(const StringName &p_name, Variant &r_ret) const;
 	void _get_property_list(List<PropertyInfo> *p_list) const;
