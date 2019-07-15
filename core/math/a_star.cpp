@@ -129,49 +129,61 @@ void AStar::connect_points(int p_id, int p_with_id, bool bidirectional) {
 
 	Point *a = points[p_id];
 	Point *b = points[p_with_id];
-	a->neighbours.insert(b);
 
+	a->neighbours.insert(b);
 	if (bidirectional)
 		b->neighbours.insert(a);
 	else
 		b->unlinked_neighbours.insert(a);
 
 	Segment s(p_id, p_with_id);
-	s.from_point = a;
-	s.to_point = b;
-	segments.insert(s);
+	if (bidirectional) s.direction = Segment::BIDIRECTIONAL;
 
-	if (bidirectional) {
-		SWAP(s.from, s.to);
-		SWAP(s.from_point, s.to_point);
-		segments.insert(s);
+	Set<Segment>::Element *element = segments.find(s);
+	if (element != NULL) {
+		s.direction |= element->get().direction;
+		if (s.direction == Segment::BIDIRECTIONAL) {
+			// Both are neighbours of each other now
+			a->unlinked_neighbours.erase(b);
+			b->unlinked_neighbours.erase(a);
+		}
+		segments.erase(element);
 	}
-}
-void AStar::disconnect_points(int p_id, int p_with_id, bool bidirectional) {
 
-	Segment s(p_id, p_with_id);
-	Segment t(p_with_id, p_id);
+	segments.insert(s);
+}
+
+void AStar::disconnect_points(int p_id, int p_with_id, bool bidirectional) {
 
 	Point *a = points[p_id];
 	Point *b = points[p_with_id];
 
-	bool warned = false;
+	Segment s(p_id, p_with_id);
+	int remove_direction = bidirectional ? (int)Segment::BIDIRECTIONAL : s.direction;
 
-	if (segments.has(s)) {
-		segments.erase(s);
+	Set<Segment>::Element *element = segments.find(s);
+	if (element != NULL) {
+		// s is the new segment
+		// Erase the directions to be removed
+		s.direction = (element->get().direction & ~remove_direction);
+
 		a->neighbours.erase(b);
-		b->unlinked_neighbours.erase(a);
-	} else {
-		warned = true;
-		WARN_PRINT("The edge to be removed does not exist.");
-	}
+		if (bidirectional) {
+			b->neighbours.erase(a);
+			if (element->get().direction != Segment::BIDIRECTIONAL) {
+				a->unlinked_neighbours.erase(b);
+				b->unlinked_neighbours.erase(a);
+			}
+		} else {
+			if (s.direction == Segment::NONE)
+				b->unlinked_neighbours.erase(a);
+			else
+				a->unlinked_neighbours.insert(b);
+		}
 
-	if (bidirectional && segments.has(t)) {
-		segments.erase(t);
-		b->neighbours.erase(a);
-		a->unlinked_neighbours.erase(b);
-	} else if (bidirectional && !warned) {
-		WARN_PRINT("The reverse edge to be removed does not exist.");
+		segments.erase(element);
+		if (s.direction != Segment::NONE)
+			segments.insert(s);
 	}
 }
 
@@ -209,8 +221,10 @@ PoolVector<int> AStar::get_point_connections(int p_id) {
 bool AStar::are_points_connected(int p_id, int p_with_id, bool bidirectional) const {
 
 	Segment s(p_id, p_with_id);
-	Segment t(p_with_id, p_id);
-	return segments.has(s) || (bidirectional && segments.has(t));
+	const Set<Segment>::Element *element = segments.find(s);
+
+	return element != NULL &&
+		   (bidirectional || (element->get().direction & s.direction) == s.direction);
 }
 
 void AStar::clear() {
@@ -250,13 +264,13 @@ Vector3 AStar::get_closest_position_in_segment(const Vector3 &p_point) const {
 
 	for (const Set<Segment>::Element *E = segments.front(); E; E = E->next()) {
 
-		if (!(E->get().from_point->enabled && E->get().to_point->enabled)) {
+		if (!(points[E->get().u]->enabled && points[E->get().v]->enabled)) {
 			continue;
 		}
 
 		Vector3 segment[2] = {
-			E->get().from_point->pos,
-			E->get().to_point->pos,
+			points[E->get().u]->pos,
+			points[E->get().v]->pos,
 		};
 
 		Vector3 p = Geometry::get_closest_point_to_segment(p_point, segment);
